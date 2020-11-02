@@ -4,46 +4,47 @@ language: python
 branches:
   only:
   - master
-  - /^v[0-9]/
+  - "/^v[0-9]/"
 env:
   global:
   - SSP_REPO="kubevirt-ssp-operator"
   - SSP_OWNER="kubevirt"
   - SSP_REPO_URL="git@github.com:${SSP_OWNER}/${SSP_REPO}.git"
   - CI_CONFIG_ADMISSION_WEBHOOK=1
+  - TRAVIS_TAG=v0.test
+  - secure: VLwH3fmtNPUEB7dBF2rfkzVcnkoqxYlm7dWr5AZnYZFTYdT63gIWKIbZWy7+VRaTS0p/Z5DOxYeG2M8Pasg1tR0zu89iNDcyNqurZJuXUinrP2BpUldm2dfhbi9n3RGXIIQKQLoszBVyHD41AfIepxQKo7zI4YnPRGvkEUg0Y/JxjmAS9AuXXVgQLHTpsf2ZyWHa9kx/OewztQQtx/aheFYit4G6RQd89tNaOI/ktZcu1lu3PKqArY40uDqrG2q2/sIrKtcz4unAYU18fmcqpYSb3I02i5P2nDC+6cyZffe+EXx8dKVSo+IqOXp9teeydX+Hu20rhW97MrOWY92B96QzoEY0SdFdjfd9mQIDF1OYLWZG5rh/3KNd2Eh6vvrGgIOU3RcEpxhuS6NYyafWoJuzCVBbk6c67Bt9M4ih7iO6fTX+wbmZgiXJB4jzh5nKR4cw3l79I5aMB8ppe9jC93JQl5FJRkuywyg6e8ULTTObIo6gF/CluupFZ3oCz8vRuNAnoEkrusiN+gVSy13HxziF/Mzy8wxF1Yzy3Bf5yKbaspU94P2GMEYgHX9jUUTxAgfECqu94Oe6MogqybzWt1kQmXBTZirMVbJ7wxx/gQTF3jBn/qzk0fkVyMt3PNrAKEbDHQTjybc0ng2quvU9wTyo5LPxSzvM+IfdpQprW3Q=
 jobs:
   include:
   - stage: Build and Deploy
     name: Build and Deploy to GitHub
     before_script: skip
-    # released artifacts MUST always have REVISION=1
     script: make release "VERSION=$TRAVIS_TAG" REVISION=1
     before_deploy:
-      - touch ssp-operator-deploy-key
-      - openssl aes-256-cbc -K $encrypted_02d89e1b05ff_key -iv $encrypted_02d89e1b05ff_iv -in ssp-operator-deploy-key.enc -out ssp-operator-deploy-key -d
-      - eval "$(ssh-agent -s)"
-      - chmod 600 ssp-operator-deploy-key
-      - ssh-add ssp-operator-deploy-key
+    - touch ssp-operator-deploy-key
+    - openssl aes-256-cbc -K $encrypted_8ebb1ef83f64_key -iv $encrypted_8ebb1ef83f64_iv -in github_deploy_key.enc -out github_deploy_key -d
+    - eval "$(ssh-agent -s)"
+    - chmod 600 ssp-operator-deploy-key
+    - ssh-add ssp-operator-deploy-key
     deploy:
-      - provider: releases
-        api_key: "$GITHUB_TOKEN"
-        file: dist/common-templates-$TRAVIS_TAG.yaml
-        skip_cleanup: true
-        name: $TRAVIS_TAG
-        on:
-          tags: true
-          repo: kubevirt/common-templates
-      - provider: script
-        script: bash -x travis_ci/release-templates-ssp-operator.sh
-        skip_cleanup: true
-        name: Deploy to SSP-operator
-        on:
-          tags: true
-          repo: kubevirt/common-templates
+    - provider: releases
+      api_key: "$GITHUB_TOKEN"
+      file: dist/common-templates-$TRAVIS_TAG.yaml
+      skip_cleanup: true
+      name: "$TRAVIS_TAG"
+      on:
+        tags: true
+        repo: vatsalparekh/common-templates
+    - provider: script
+      script: bash -x travis_ci/release-templates-ssp-operator.sh
+      skip_cleanup: true
+      name: Deploy to SSP-operator
+      on:
+        tags: true
+        repo: vatsalparekh/common-templates
 addons:
   apt:
     sources:
-    - sourceline: 'ppa:ansible/ansible'
+    - sourceline: ppa:ansible/ansible
     packages:
     - qemu-utils
     - libosinfo-1.0
